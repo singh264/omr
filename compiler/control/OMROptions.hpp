@@ -1888,7 +1888,7 @@ private:
       void   set(int  flagIndex){         word(flagIndex) |=  bit(flagIndex); }
       void reset(int  flagIndex){         word(flagIndex) &= ~bit(flagIndex); }
 
-      bool isSet(Enum flagIndex){ return isSet((int)flagIndex); }
+      bool isSet(Enum flagIndex){ fprintf(stderr, "%u %d %ld %u %d %ld", (int)flagIndex, (int)flagIndex, (int)flagIndex, NUM_FLAGS, NUM_FLAGS, NUM_FLAGS); return isSet((int)flagIndex); }
       void   set(Enum flagIndex){   set((int)flagIndex); }
       void reset(Enum flagIndex){ reset((int)flagIndex); }
 
