@@ -56,6 +56,8 @@ class ObjectModel
 
    void initialize() { }
 
+   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { _objectAlignmentInBytes = objectAlignmentInBytes; }
+
    bool mayRequireSpineChecks() { return false; }
 
    bool areValueTypesEnabled() { return false; }
@@ -113,6 +115,8 @@ class ObjectModel
    uintptr_t objectHeaderSizeInBytes() { return 0; }
    uintptr_t offsetOfIndexableSizeField() { return 0; }
 
+   void setObjectAlignmentInBytes(
+
    /**
    * @brief: Returns the read barrier type of VM's GC
    */
@@ -123,6 +127,10 @@ class ObjectModel
    */
    MM_GCWriteBarrierType writeBarrierType() { return gc_modron_wrtbar_none;  }
    };
+
+   private:
+
+   int32_t _objectAlignmentInBytes;
 }
 
 #endif
