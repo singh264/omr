@@ -115,8 +115,6 @@ class ObjectModel
    uintptr_t objectHeaderSizeInBytes() { return 0; }
    uintptr_t offsetOfIndexableSizeField() { return 0; }
 
-   void setObjectAlignmentInBytes(
-
    /**
    * @brief: Returns the read barrier type of VM's GC
    */
