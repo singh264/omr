@@ -32,6 +32,7 @@ namespace OMR { typedef OMR::ObjectModel ObjectModelConnector; }
 #endif
 
 #include <stdint.h>
+#include <stdio.h>
 #include "omrgcconsts.h"
 #include "env/jittypes.h"
 #include "il/DataTypes.hpp"
@@ -56,7 +57,7 @@ class ObjectModel
 
    void initialize() { }
 
-   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { _objectAlignmentInBytes = objectAlignmentInBytes; }
+   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { _objectAlignmentInBytes = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytes); }
 
    bool mayRequireSpineChecks() { return false; }
 
