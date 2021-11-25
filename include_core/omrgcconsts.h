@@ -38,6 +38,17 @@
 #define OMR_GC_POLICY_OPTTHRUPUT 0x1
 #define OMR_GC_POLICY_NOGC 0x6
 
+// int32_t _objectAlignmentInBytesTmp;
+
+// #if !defined(OMRGCCONSTS_H__objectAlignmentInBytesTmp)
+// #define OMRGCCONSTS_H__objectAlignmentInBytesTmp
+// int32_t _objectAlignmentInBytesTmp;
+// #endif /* OMRGCCONSTS_H__objectAlignmentInBytesTmp */
+
+struct ObjectAlignmentInBytesStruct {
+	int32_t _objectAlignmentInBytes;
+};
+
 /*
  * list of available GC policies
  */
