@@ -57,7 +57,16 @@ class ObjectModel
 
    void initialize() { }
 
-   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { this->_objectAlignmentInBytes = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytes); }
+   // void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { _objectAlignmentInBytesTmp = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytesTmp); }
+   // void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { printf ("initializeObjectAlignmentInBytes %d", objectAlignmentInBytes); }
+   // void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytesTmp); _objectAlignmentInBytesTmp = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytesTmp); }
+   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes)
+   {
+      struct ObjectAlignmentInBytesStruct objectAlignmentInBytesStruct;
+      printf ("initializeObjectAlignmentInBytes %d", objectAlignmentInBytesStruct._objectAlignmentInBytes);
+      objectAlignmentInBytesStruct._objectAlignmentInBytes = objectAlignmentInBytes;
+      printf ("initializeObjectAlignmentInBytes %d", objectAlignmentInBytesStruct._objectAlignmentInBytes);
+   }
 
    bool mayRequireSpineChecks() { return false; }
 
@@ -127,9 +136,9 @@ class ObjectModel
    MM_GCWriteBarrierType writeBarrierType() { return gc_modron_wrtbar_none;  }
    };
 
-   private:
+   // private:
 
-   int32_t _objectAlignmentInBytes;
+   // int32_t _objectAlignmentInBytesTmp;
 }
 
 #endif
