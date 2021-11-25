@@ -57,7 +57,7 @@ class ObjectModel
 
    void initialize() { }
 
-   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { _objectAlignmentInBytes = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytes); }
+   void initializeObjectAlignmentInBytes(int32_t objectAlignmentInBytes) { this->_objectAlignmentInBytes = objectAlignmentInBytes; printf ("initializeObjectAlignmentInBytes %d", _objectAlignmentInBytes); }
 
    bool mayRequireSpineChecks() { return false; }
 
