@@ -68,6 +68,41 @@ class ObjectModel
       printf ("initializeObjectAlignmentInBytes %d", objectAlignmentInBytesStruct._objectAlignmentInBytes);
    }
 
+/*
+#include <iostream>
+
+using namespace std;
+
+class ObjectModelConnector
+{
+    public:
+    
+    void initializeObjectAlignmentInBytes(int objectAlignmentInBytes) { printf("%d ", this->_objectAlignmentInBytes); this->_objectAlignmentInBytes = objectAlignmentInBytes; printf("%d", this->_objectAlignmentInBytes); }
+    
+    private:
+    
+    int _objectAlignmentInBytes;
+};
+
+class ObjectModel : public ObjectModelConnector
+{
+    public:
+    
+    ObjectModel() :
+      ObjectModelConnector()
+    {
+        ObjectModelConnector::initializeObjectAlignmentInBytes(1);
+    }
+};
+       
+int main()
+{
+    ObjectModel objectModel;
+
+    return 0;
+}
+*/
+
    bool mayRequireSpineChecks() { return false; }
 
    bool areValueTypesEnabled() { return false; }
