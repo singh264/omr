@@ -125,11 +125,11 @@ class ObjectModel
    * @brief: Returns the write type kind of VM's GC
    */
    MM_GCWriteBarrierType writeBarrierType() { return gc_modron_wrtbar_none;  }
-   };
 
    private:
 
    int32_t _objectAlignmentInBytes;
+   };
 }
 
 #endif
