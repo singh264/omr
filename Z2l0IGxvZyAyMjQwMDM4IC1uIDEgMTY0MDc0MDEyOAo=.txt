@@ -1,0 +1,10 @@
+git log 2240038 -n 1
+
+    commit 22400381ea7bc9e394282882b3af6bb0b3cb7a42
+    Merge: b95fd53e2 616c33978
+    Author: Daryl Maier <maier@ca.ibm.com>
+    Date:   Mon Nov 15 19:47:01 2021 -0500
+    
+        Merge pull request #6240 from pshipton/sigseminit
+        
+        Call perror() when SIGSEM_INIT fails in port library startup

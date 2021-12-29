@@ -1,0 +1,7 @@
+commit c91ca47c9abc8315187f88d33ffcb3d53c508113
+Author: midronij <jackie.midroni@ibm.com>
+Date:   Wed Oct 27 15:37:03 2021 -0400
+
+    Implement vsub for types ShortVector and ByteVector of size 128
+    
+    Signed-off-by: midronij <jackie.midroni@ibm.com>

@@ -1,0 +1,8 @@
+commit f76321aa3ba1e85e71bd57c8c22b5d6cf427b4f5
+Merge: 22400381e c91ca47c9
+Author: Ben Thomas (Aviansie Ben) <ben@benthomas.ca>
+Date:   Tue Nov 16 01:55:59 2021 +0000
+
+    Merge pull request #6237 from midronij/vAddSub
+    
+    Implement vadd and vsub for Short and ByteVectors of size 128
