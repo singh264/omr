@@ -37,21 +37,30 @@
 #include <sched.h>
 #include <fstream>
 #include <regex>
+#include <sys/wait.h>
+#include <unistd.h>
 #endif /* defined(LINUX) */
 #if defined(OMR_OS_WINDOWS)
 #include <direct.h>
+#include <windows.h>
 #endif /* defined(OMR_OS_WINDOWS) */
 #if !defined(OMR_OS_WINDOWS)
 #include <grp.h>
 #include <errno.h>
 #if defined(J9ZOS390)
 #include <limits.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #else
 #define __STDC_LIMIT_MACROS
 #include <stdint.h> /* For INT64_MAX. */
 #endif /* defined(J9ZOS390) */
 #include <sys/resource.h> /* For RLIM_INFINITY */
 #endif /* !defined(OMR_OS_WINDOWS) */
+#if defined(OSX) || defined(AIXPPC)
+#include <sys/wait.h>
+#include <unistd.h>
+#endif /* defined(LINUX) */
 
 #if defined(J9ZOS390) && !defined(OMR_EBCDIC)
 #include "atoe.h"
@@ -3118,4 +3127,56 @@ TEST(PortSysinfoTest, GetProcessorDescription)
 		BOOLEAN feature = omrsysinfo_processor_has_feature(&desc, i);
 		ASSERT_TRUE(feature == TRUE || feature == FALSE);
 	}
+}
+
+/**
+ * Test GetProcessorStartTimeOfNonExistingProcessTest.
+ */
+TEST(PortSysinfoTest, GetProcessorStartTimeOfNonExistingProcessTest)
+{
+	OMRPORT_ACCESS_FROM_OMRPORT(portTestEnv->getPortLibrary());
+	uintptr_t pid = UINTPTR_MAX;
+	uint64_t expectedProcessStartTimeInNanoseconds = 0;
+	uint64_t actualProcessStartTimeInNanoseconds = omrsysinfo_get_process_start_time(pid);
+	ASSERT_EQ(expectedProcessStartTimeInNanoseconds, actualProcessStartTimeInNanoseconds);
+}
+
+/**
+ * Test GetProcessorStartTimeOfExistingProcessTest.
+ */
+TEST(PortSysinfoTest, GetProcessorStartTimeOfExistingProcessTest)
+{
+	OMRPORT_ACCESS_FROM_OMRPORT(portTestEnv->getPortLibrary());
+	uintptr_t pid = UINTPTR_MAX;
+	uintptr_t success = 0;
+	uint64_t testStartTimeInNanoseconds = omrtime_current_time_nanos(&success);
+	uint64_t processStartTimeInNanoseconds = 0;
+#if defined(LINUX) || defined(OSX) || defined(AIXPPC) || defined(J9ZOS390)
+	int status = 0;
+	sleep(3);
+	pid = fork();
+	ASSERT_NE(pid, -1);
+	if (0 == pid) {
+		sleep(10);
+		exit(0);
+	}
+	processStartTimeInNanoseconds = omrsysinfo_get_process_start_time(pid);
+	waitpid(pid, &status, 0);
+#elif defined(OMR_OS_WINDOWS) /* defined(LINUX) || defined(OSX) || defined(AIXPPC) || defined(J9ZOS390) */
+	STARTUPINFO si;
+	PROCESS_INFORMATION pi;
+	BOOL ret = FALSE;
+	ZeroMemory(&si, sizeof(si));
+	si.cb = sizeof(si);
+	ZeroMemory(&pi, sizeof(pi));
+	ret = CreateProcess(NULL, "cmd.exe /c timeout /t 10", NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+	ASSERT_EQ(ret, TRUE);
+	pid = (uintptr_t)GetProcessId(pi.hProcess);
+	processStartTimeInNanoseconds = omrsysinfo_get_process_start_time(pid);
+	WaitForSingleObject(pi.hProcess, INFINITE);
+	CloseHandle(pi.hProcess);
+	CloseHandle(pi.hThread);
+#endif /* defined(LINUX) || defined(OSX) || defined(AIXPPC) || defined(J9ZOS390) */
+	ASSERT_GT(processStartTimeInNanoseconds, testStartTimeInNanoseconds);
+	ASSERT_LT(processStartTimeInNanoseconds, omrtime_current_time_nanos(&success));
 }

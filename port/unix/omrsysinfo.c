@@ -80,6 +80,7 @@
 
 
 #if defined(J9ZOS390)
+#include "omrintrospect.h"
 #include "omrsimap.h"
 #endif /* defined(J9ZOS390) */
 
@@ -95,6 +96,7 @@
 
 #if defined(AIXPPC)
 #include <fcntl.h>
+#include <procinfo.h>
 #include <sys/procfs.h>
 #include <sys/systemcfg.h>
 #endif /* defined(AIXPPC) */
@@ -640,6 +642,25 @@ static int32_t retrieveOSXMemoryStats(struct OMRPortLibrary *portLibrary, struct
 #elif defined(AIXPPC)
 static int32_t retrieveAIXMemoryStats(struct OMRPortLibrary *portLibrary, struct J9MemoryInfo *memInfo);
 #endif
+
+#if defined(LINUX) || defined(OSX) || defined(AIXPPC) || defined(J9ZOS390)
+#define NANOSECONDS_PER_SECOND 1000000000ULL
+#endif /* defined(LINUX) || defined(OSX) || defined(AIXPPC) || defined(J9ZOS390) */
+
+#if defined(LINUX)
+#define PROC_DIR_BUFFER_SIZE 256
+#define STAT_FAILURE -1
+#endif /* defined(LINUX) */
+
+#if defined(OSX)
+#define NUM_SYSCTL_ARGS 4
+#define SYSCTL_FAILURE -1
+#define NANOSECONDS_PER_MICROSECOND 1000ULL
+#endif /* defined(OSX) */
+
+#if defined(J9ZOS390)
+#define I32MAXVAL 0x7FFFFFFF
+#endif /* defined(J9ZOS390) */
 
 /**
  * @internal
@@ -7354,3 +7375,82 @@ get_Dispatch_IstreamCount(void) {
 	return (uintptr_t)numberOfIStreams;
 }
 #endif /* defined(OMRZTPF) */
+
+/**
+ * Get the process start time in ns precision epoch time.
+ * @param[in] portLibrary The port library.
+ * @param[in] pid The process id.
+ * @return 0 if the process does not exist, process start time in ns precision epoch time if the process exists.
+ */
+uint64_t
+omrsysinfo_get_process_start_time(struct OMRPortLibrary *portLibrary, uintptr_t pid)
+{
+	uint64_t processStartTimeInNanoseconds = 0;
+	if (omrsysinfo_process_exists(portLibrary, pid)) {
+#if defined(LINUX)
+		char procDir[PROC_DIR_BUFFER_SIZE] = {0};
+		struct stat st;
+		snprintf(procDir, sizeof(procDir), "/proc/%" PRIuPTR, pid);
+		if (stat(procDir, &st) == STAT_FAILURE) {
+			perror("stat");
+			goto done;
+		}
+		processStartTimeInNanoseconds = (uint64_t)st.st_mtime * NANOSECONDS_PER_SECOND + st.st_mtim.tv_nsec;
+#elif defined(OSX) /* defined(LINUX) */
+		int mib[NUM_SYSCTL_ARGS] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+		size_t len = sizeof(struct kinfo_proc);
+		struct kinfo_proc procInfo;
+		if (sysctl(mib, NUM_SYSCTL_ARGS, &procInfo, &len, NULL, 0) == SYSCTL_FAILURE) {
+			perror("sysctl");
+			goto done;
+		}
+		if (0 == len) {
+			perror("pid does not exist");
+			goto done;
+		}
+		processStartTimeInNanoseconds =
+			((uint64_t)procInfo.kp_proc.p_starttime.tv_sec * NANOSECONDS_PER_SECOND) +
+			((uint64_t)procInfo.kp_proc.p_starttime.tv_usec * NANOSECONDS_PER_MICROSECOND);
+#elif defined(AIXPPC) /* defined(OSX) */
+		pid_t convertedPid = (pid_t)pid;
+		struct procsinfo procInfos[] = {0};
+		int ret = getprocs(procInfos, sizeof(procInfos[0]), NULL, 0, &convertedPid, sizeof(procInfos) / sizeof(procInfos[0]));
+		if (-1 == ret) {
+			perror("getprocs");
+			goto done;
+		} else if (0 == ret) {
+			perror("pid does not exist");
+			goto done;
+		}
+		processStartTimeInNanoseconds = (uint64_t)(procInfos[0].pi_start) * NANOSECONDS_PER_SECOND;
+#elif defined(J9ZOS390) /* defined(AIXPPC) */
+		struct pgtha pgtha;
+		struct j9pg_thread_data threadData;
+		struct pgthc *pgthc = NULL;
+		unsigned int dataOffset = 0;
+		int inputSize = sizeof(struct pgtha);
+		struct pgtha *input = &pgtha;
+		int outputSize = sizeof(struct j9pg_thread_data);
+		unsigned char *output = (unsigned char *)&threadData;
+		int ret = 0;
+		int retCode = 0;
+		int reasonCode = 0;
+		memset(input, 0, sizeof(pgtha));
+		memset(output, 0, sizeof(threadData));
+		pgtha.pid = (pid_t)pid;
+		pgtha.accesspid = PGTHA_ACCESS_CURRENT;
+		pgtha.flag1 = PGTHA_FLAG_PROCESS_DATA;
+		getthent_os(&inputSize, &input, &outputSize, (void **)&output, &ret, &retCode, &reasonCode);
+		if (-1 == ret) {
+			fprintf(stderr, "getthent_os\n");
+			goto done;
+		}
+		dataOffset = *((unsigned int *)threadData.pgthb.offc);
+		dataOffset = (dataOffset & I32MAXVAL) >> 8;
+		pgthc = (struct pgthc *)(((char *)&threadData) + dataOffset);
+		processStartTimeInNanoseconds = (uint64_t)pgthc->starttime * NANOSECONDS_PER_SECOND;
+#endif /* defined(LINUX) */
+	}
+done:
+	return processStartTimeInNanoseconds;
+}

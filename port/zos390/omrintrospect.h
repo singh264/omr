@@ -34,10 +34,13 @@
 #include "omrutil.h"
 
 #pragma linkage(getthent, OS_UPSTACK)
+#pragma linkage(getthent_os, OS)
 #if defined(OMR_ENV_DATA64)
 #pragma map(getthent, "BPX4GTH")
+#pragma map(getthent_os, "BPX4GTH")
 #else
 #pragma map(getthent, "BPX1GTH")
+#pragma map(getthent_os, "BPX1GTH")
 #endif
 
 #pragma linkage(pthread_quiesce, OS_UPSTACK)
@@ -778,6 +781,14 @@ struct tcb {
 #define FREEZE_EXIT          8  /*  Quiesce threads type = freeze_exit */
 #define QUIESCE_SRB          9  /*  Quiesce threads type = SRBs      @DGA */
 /* Skip 10 and 11 due to collision with BPXZCONS Freeze/Unfreeze Fast */
+
+void getthent_os(int *inputSize, struct pgtha **input, int *outputSize, void **output, int *ret, int *retCode, int *reasonCode);
+
+struct j9pg_thread_data {
+	struct pgthb pgthb;
+	struct pgthj pgthj;
+	char padding[256];
+};
 
 #pragma pack(reset)
 

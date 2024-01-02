@@ -46,6 +46,10 @@
 #include "ut_omrport.h"
 #include "omrsysinfo_helpers.h"
 
+#define WINDOWS_TICK 10000000ULL
+#define SEC_TO_UNIX_EPOCH 11644473600ULL
+#define NS100_PER_SEC 10000000ULL
+
 static int32_t copyEnvToBuffer(struct OMRPortLibrary *portLibrary, void *args);
 
 typedef struct CopyEnvToBufferArgs {
@@ -1990,3 +1994,34 @@ omrsysinfo_cgroup_subsystem_iterator_destroy(struct OMRPortLibrary *portLibrary,
 	return;
 }
 
+/**
+ * Get the process start time of a process in ns precision epoch time.
+ * @param[in] portLibrary The port library.
+ * @param[in] pid The process id.
+ * @return 0 if the process does not exist, process start time in ns precision epoch time if the process exists.
+ */
+uint64_t
+omrsysinfo_get_process_start_time(struct OMRPortLibrary *portLibrary, uintptr_t pid)
+{
+	uint64_t processStartTimeInNanoseconds = 0;
+	if (omrsysinfo_process_exists(portLibrary, pid)) {
+		HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, (DWORD)pid);
+		FILETIME createTime, exitTime, kernelTime, userTime;
+		double seconds = 0;
+		if (NULL == process) {
+			fprintf(stderr, "error opening process\n");
+			goto done;
+		}
+		if (!GetProcessTimes(process, &createTime, &exitTime, &kernelTime, &userTime)) {
+			fprintf(stderr, "error getting process times\n");
+			goto cleanup;
+		}
+		seconds = (double)(*(LONGLONG*)&(createTime)) / WINDOWS_TICK;
+		processStartTimeInNanoseconds = (uint64_t)((seconds - SEC_TO_UNIX_EPOCH) * NS100_PER_SEC);
+		processStartTimeInNanoseconds *= 100;
+cleanup:
+		CloseHandle(process);
+	}
+done:
+	return processStartTimeInNanoseconds;
+}
