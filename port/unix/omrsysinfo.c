@@ -80,6 +80,7 @@
 
 
 #if defined(J9ZOS390)
+#include "omrgetthent.h"
 #include "omrsimap.h"
 #endif /* defined(J9ZOS390) */
 
@@ -95,6 +96,7 @@
 
 #if defined(AIXPPC)
 #include <fcntl.h>
+#include <procinfo.h>
 #include <sys/procfs.h>
 #include <sys/systemcfg.h>
 #endif /* defined(AIXPPC) */
@@ -195,6 +197,19 @@ uintptr_t Get_Number_Of_CPUs();
 #define JIFFIES         100
 #define USECS_PER_SEC   1000000
 #define TICKS_TO_USEC   ((uint64_t)(USECS_PER_SEC/JIFFIES))
+#define OMRPORT_SYSINFO_PROC_DIR_BUFFER_SIZE 256
+#define OMRPORT_SYSINFO_STAT_ERROR -1
+#define OMRPORT_SYSINFO_NUM_SYSCTL_ARGS 4
+#define OMRPORT_SYSINFO_SYSCTL_ERROR -1
+#define OMRPORT_SYSINFO_NANOSECONDS_PER_MICROSECOND 1000ULL
+#define OMRPORT_SYSINFO_GETPROCS_ERROR -1
+#define OMRPORT_SYSINFO_GETPROCS_NONEXISTING_PID_ERROR 0
+#define OMRPORT_SYSINFO_GETTHENT_ERROR -1
+#if defined(_LP64)
+#define GETTHENT BPX4GTH
+#else /* defined(_LP64) */
+#define GETTHENT BPX1GTH
+#endif /* defined(_LP64) */
 
 static uintptr_t copyEnvToBuffer(struct OMRPortLibrary *portLibrary, void *args);
 static uintptr_t copyEnvToBufferSignalHandler(struct OMRPortLibrary *portLib, uint32_t gpType, void *gpInfo, void *unUsed);
@@ -598,6 +613,19 @@ static intptr_t searchSystemPath(struct OMRPortLibrary *portLibrary, char *filen
 #if defined(J9ZOS390)
 static void setOSFeature(struct OMROSDesc *desc, uint32_t feature);
 static intptr_t getZOSDescription(struct OMRPortLibrary *portLibrary, struct OMROSDesc *desc);
+#if defined(_LP64)
+#pragma linkage(BPX4GTH,OS)
+#else /* defined(_LP64) */
+#pragma linkage(BPX1GTH,OS)
+#endif /* defined(_LP64) */
+void GETTHENT(
+	unsigned int *inputSize,
+	unsigned char **input,
+	unsigned int *outputSize,
+	unsigned char **output,
+	unsigned int *ret,
+	unsigned int *retCode,
+	unsigned int *reasonCode);
 #endif /* defined(J9ZOS390) */
 
 #if !defined(RS6000) && !defined(J9ZOS390) && !defined(OSX) && !defined(OMRZTPF)
@@ -7354,3 +7382,84 @@ get_Dispatch_IstreamCount(void) {
 	return (uintptr_t)numberOfIStreams;
 }
 #endif /* defined(OMRZTPF) */
+
+uint64_t
+omrsysinfo_get_process_start_time(struct OMRPortLibrary *portLibrary, uintptr_t pid)
+{
+	Trc_PRT_sysinfo_get_process_start_time_enter((unsigned long long)pid);
+	uint64_t processStartTimeInNanoseconds = 0;
+	if (0 != omrsysinfo_process_exists(portLibrary, pid)) {
+#if defined(LINUX)
+		char procDir[OMRPORT_SYSINFO_PROC_DIR_BUFFER_SIZE] = {0};
+		struct stat st;
+		snprintf(procDir, sizeof(procDir), "/proc/%" PRIuPTR, pid);
+		if (OMRPORT_SYSINFO_STAT_ERROR == stat(procDir, &st)) {
+			Trc_PRT_sysinfo_get_process_start_time_stat_error((unsigned long long)pid);
+			goto done;
+		}
+		processStartTimeInNanoseconds = (uint64_t)st.st_mtime * OMRPORT_TIME_DELTA_IN_NANOSECONDS + st.st_mtim.tv_nsec;
+#elif defined(OSX) /* defined(LINUX) */
+		int mib[OMRPORT_SYSINFO_NUM_SYSCTL_ARGS] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, pid};
+		size_t len = sizeof(struct kinfo_proc);
+		struct kinfo_proc procInfo;
+		if (OMRPORT_SYSINFO_SYSCTL_ERROR == sysctl(mib, OMRPORT_SYSINFO_NUM_SYSCTL_ARGS, &procInfo, &len, NULL, 0)) {
+			Trc_PRT_sysinfo_get_process_start_time_sysctl_error((unsigned long long)pid);
+			goto done;
+		}
+		if (0 == len) {
+			Trc_PRT_sysinfo_get_process_start_time_pid_does_not_exist((unsigned long long)pid);
+			goto done;
+		}
+		processStartTimeInNanoseconds =
+			((uint64_t)procInfo.kp_proc.p_starttime.tv_sec * OMRPORT_TIME_DELTA_IN_NANOSECONDS) +
+			((uint64_t)procInfo.kp_proc.p_starttime.tv_usec * OMRPORT_SYSINFO_NANOSECONDS_PER_MICROSECOND);
+#elif defined(AIXPPC) /* defined(OSX) */
+		pid_t convertedPid = (pid_t)pid;
+		struct procsinfo procInfos[] = {0};
+		int ret = getprocs(procInfos, sizeof(procInfos[0]), NULL, 0, &convertedPid, sizeof(procInfos) / sizeof(procInfos[0]));
+		if (OMRPORT_SYSINFO_GETPROCS_ERROR == ret) {
+			Trc_PRT_sysinfo_get_process_start_time_getprocs_error((unsigned long long)pid);
+			goto done;
+		} else if (OMRPORT_SYSINFO_GETPROCS_NONEXISTING_PID_ERROR == ret) {
+			Trc_PRT_sysinfo_get_process_start_time_pid_does_not_exist((unsigned long long)pid);
+			goto done;
+		}
+		processStartTimeInNanoseconds = (uint64_t)(procInfos[0].pi_start) * OMRPORT_TIME_DELTA_IN_NANOSECONDS;
+#elif defined(J9ZOS390) /* defined(AIXPPC) */
+		pgtha pgtha;
+		ProcessData processData;
+		pgthc *currentProcessInfo = NULL;
+		uint32_t dataOffset = 0;
+		uint32_t inputSize = sizeof(pgtha);
+		unsigned char *input = (unsigned char *)&pgtha;
+		uint32_t outputSize = sizeof(ProcessData);
+		unsigned char *output = (unsigned char *)&processData;
+		uint32_t ret = 0;
+		uint32_t retCode = 0;
+		uint32_t reasonCode = 0;
+		memset(input, 0, sizeof(pgtha));
+		memset(output, 0, sizeof(processData));
+		pgtha.pid = pid;
+		pgtha.accesspid = PGTHA_ACCESS_CURRENT;
+		pgtha.flag1 = PGTHA_FLAG_PROCESS_DATA;
+		GETTHENT(&inputSize, &input, &outputSize, &output, &ret, &retCode, &reasonCode);
+		if (OMRPORT_SYSINFO_GETTHENT_ERROR == ret) {
+			Trc_PRT_sysinfo_get_process_start_time_getthent_error((unsigned long long)pid);
+			goto done;
+		}
+		dataOffset = *((unsigned int *)processData.pgthb.offc);
+		dataOffset = (dataOffset & I_32_MAX) >> 8;
+		currentProcessInfo = (pgthc *)(((char *)&processData) + dataOffset);
+		processStartTimeInNanoseconds = (uint64_t)currentProcessInfo->starttime * OMRPORT_TIME_DELTA_IN_NANOSECONDS;
+#else /* defined(J9ZOS390) */
+		portLibrary->nls_printf(
+			portLibrary,
+			J9NLS_WARNING,
+			J9NLS_PORT_SYSINFO_UNSUPPORTED_PLATFORM_ERROR,
+			"omrsysinfo_get_process_start_time is unsupported on this platform.");
+#endif /* defined(LINUX) */
+	}
+done:
+	Trc_PRT_sysinfo_get_process_start_time_exit((unsigned long long)pid);
+	return processStartTimeInNanoseconds;
+}

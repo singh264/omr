@@ -181,7 +181,7 @@ omrtime_nano_time(struct OMRPortLibrary *portLibrary)
 	if (PPG_time_hiresClockFrequency == OMRTIME_NANOSECONDS_PER_SECOND) {
 		nanos = ticks;
 	} else if (PPG_time_hiresClockFrequency < OMRTIME_NANOSECONDS_PER_SECOND) {
-		nanos = (int64_t)(ticks * (OMRTIME_NANOSECONDS_PER_SECOND / PPG_time_hiresClockFrequency));
+		nanos = (int64_t)(ticks * (OMRPORT_TIME_DELTA_IN_NANOSECONDS / PPG_time_hiresClockFrequency));
 	} else {
 		nanos = (int64_t)(ticks / (PPG_time_hiresClockFrequency / OMRTIME_NANOSECONDS_PER_SECOND));
 	}

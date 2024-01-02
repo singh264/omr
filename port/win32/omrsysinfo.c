@@ -46,6 +46,10 @@
 #include "ut_omrport.h"
 #include "omrsysinfo_helpers.h"
 
+#define OMRPORT_SYSINFO_WINDOWS_TICK 10000000ULL
+#define OMRPORT_SYSINFO_SEC_TO_UNIX_EPOCH 11644473600ULL
+#define OMRPORT_SYSINFO_NS100_PER_SEC 10000000ULL
+
 static int32_t copyEnvToBuffer(struct OMRPortLibrary *portLibrary, void *args);
 
 typedef struct CopyEnvToBufferArgs {
@@ -1990,3 +1994,30 @@ omrsysinfo_cgroup_subsystem_iterator_destroy(struct OMRPortLibrary *portLibrary,
 	return;
 }
 
+uint64_t
+omrsysinfo_get_process_start_time(struct OMRPortLibrary *portLibrary, uintptr_t pid)
+{
+	Trc_PRT_sysinfo_get_process_start_time_enter((unsigned long long)pid);
+	uint64_t processStartTimeInNanoseconds = 0;
+	if (0 != omrsysinfo_process_exists(portLibrary, pid)) {
+		double seconds = 0;
+		FILETIME createTime, exitTime, kernelTime, userTime;
+		HANDLE process = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, (DWORD)pid);
+		if (NULL == process) {
+			Trc_PRT_sysinfo_get_process_start_time_OpenProcess_error((unsigned long long)pid);
+			goto done;
+		}
+		if (!GetProcessTimes(process, &createTime, &exitTime, &kernelTime, &userTime)) {
+			Trc_PRT_sysinfo_get_process_start_time_GetProcessTimes_error((unsigned long long)pid);
+			goto cleanup;
+		}
+		seconds = (double)(*(LONGLONG*)&(createTime)) / OMRPORT_SYSINFO_WINDOWS_TICK;
+		processStartTimeInNanoseconds = (uint64_t)((seconds - OMRPORT_SYSINFO_SEC_TO_UNIX_EPOCH) * OMRPORT_SYSINFO_NS100_PER_SEC);
+		processStartTimeInNanoseconds *= 100;
+cleanup:
+		CloseHandle(process);
+	}
+done:
+	Trc_PRT_sysinfo_get_process_start_time_exit((unsigned long long)pid);
+	return processStartTimeInNanoseconds;
+}
