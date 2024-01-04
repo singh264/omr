@@ -7440,9 +7440,9 @@ omrsysinfo_get_process_start_time(struct OMRPortLibrary *portLibrary, uintptr_t 
 		pgtha.pid = (pid_t)pid;
 		pgtha.accesspid = PGTHA_ACCESS_CURRENT;
 		pgtha.flag1 = PGTHA_FLAG_PROCESS_DATA;
-		getthent_os(&inputSize, &input, &outputSize, (void **)&output, &ret, &retCode, &reasonCode);
+		getthent(&inputSize, &input, &outputSize, (void **)&output, &ret, &retCode, &reasonCode);
 		if (-1 == ret) {
-			fprintf(stderr, "getthent_os\n");
+			fprintf(stderr, "getthent\n");
 			goto done;
 		}
 		dataOffset = *((unsigned int *)threadData.pgthb.offc);
