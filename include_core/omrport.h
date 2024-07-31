@@ -2139,6 +2139,8 @@ typedef struct OMRPortLibrary {
 	void (*mem_free_memory32)(struct OMRPortLibrary *portLibrary, void *memoryPointer) ;
 	/** see @ref omrmem.c::omrmem_ensure_capacity32 "omrmem_ensure_capacity32"*/
 	uintptr_t (*mem_ensure_capacity32)(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount) ;
+	/** see @ref omrmem.c::omrmem_disclaimAllMem32 "omrmem_disclaimAllMem32"*/
+	int32_t (*mem_disclaimAllMem32)(struct OMRPortLibrary *portLibrary) ;
 	/** see @ref omrcpu.c::omrcpu_startup "omrcpu_startup"*/
 	int32_t (*cpu_startup)(struct OMRPortLibrary *portLibrary) ;
 	/** see @ref omrcpu.c::omrcpu_shutdown "omrcpu_shutdown"*/
@@ -2955,6 +2957,7 @@ extern J9_CFUNC int32_t omrport_getVersion(struct OMRPortLibrary *portLibrary);
 #define omrmem_allocate_memory32(param1, category) privateOmrPortLibrary->mem_allocate_memory32(privateOmrPortLibrary, (param1), OMR_GET_CALLSITE(), (category))
 #define omrmem_free_memory32(param1) privateOmrPortLibrary->mem_free_memory32(privateOmrPortLibrary, (param1))
 #define omrmem_ensure_capacity32(param1) privateOmrPortLibrary->mem_ensure_capacity32(privateOmrPortLibrary, (param1))
+#define omrmem_disclaimAllMem32() privateOmrPortLibrary->mem_ensure_capacity32(privateOmrPortLibrary)
 #define omrcpu_startup() privateOmrPortLibrary->cpu_startup(privateOmrPortLibrary)
 #define omrcpu_shutdown() privateOmrPortLibrary->cpu_shutdown(privateOmrPortLibrary)
 #define omrcpu_flush_icache(param1,param2) privateOmrPortLibrary->cpu_flush_icache(privateOmrPortLibrary, (param1), (param2))

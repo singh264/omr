@@ -166,6 +166,7 @@ static OMRPortLibrary MainPortLibraryTable = {
 	omrmem_free_memory, /* mem_free_memory */
 #endif
 	omrmem_ensure_capacity32, /* mem_ensure_capacity32 */
+	omrmem_disclaimAllMem32, /* omrmem_disclaimAllMem32 */
 	omrcpu_startup, /* cpu_startup */
 	omrcpu_shutdown, /* cpu_shutdown */
 	omrcpu_flush_icache, /* cpu_flush_icache */

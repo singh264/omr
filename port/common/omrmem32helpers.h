@@ -31,6 +31,7 @@ void shutdown_memory32(struct OMRPortLibrary *portLibrary);
 void *allocate_memory32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount, const char *callSite);
 void free_memory32(struct OMRPortLibrary *portLibrary, void *memoryPointer);
 uintptr_t ensure_capacity32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount);
+int32_t disclaimAllMem32(struct OMRPortLibrary *portLibrary);
 
 #endif /* omrmemhelpers_h */
 

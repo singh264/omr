@@ -354,6 +354,8 @@ extern J9_CFUNC void
 omrmem_free_memory32(struct OMRPortLibrary *portLibrary, void *memoryPointer);
 extern J9_CFUNC uintptr_t
 omrmem_ensure_capacity32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount);
+extern J9_CFUNC int32_t
+omrmem_disclaimAllMem32(struct OMRPortLibrary *portLibrary);
 
 /* omrmemcategories.c */
 extern J9_CFUNC OMRMemCategory *

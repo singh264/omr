@@ -1635,3 +1635,7 @@ TraceEntry=Trc_PRT_sysinfo_get_process_start_time_enter Group=sysinfo Overhead=1
 TraceExit=Trc_PRT_sysinfo_get_process_start_time_exit Group=sysinfo Overhead=1 Level=1 NoEnv Template="Exit omrsysinfo_get_process_start_time, pid=%zu, processStartTimeInNanoseconds=%llu, rc=%d."
 
 TraceEvent=Trc_PRT_vmem_reserve_tempfile_not_created Group=mem Overhead=1 Level=5 NoEnv Template="reserve_memory cannot create temporary file %s of size %zu"
+
+TraceEntry=Trc_PRT_mem_disclaimAllMem32_enter Group=mem Overhead=1 Level=1 NoEnv Template="Enter omrmem_disclaimAllMem32"
+TraceEvent=Trc_PRT_mem_disclaimAllMem32_heap Group=mem Overhead=1 Level=1 NoEnv Template="omrmem_disclaimAllMem32 heap address=%p, size=%d"
+TraceExit=Trc_PRT_mem_allocate_memory32_exit Group=mem Overhead=1 Level=10 NoEnv Template="Exit omrmem_disclaimAllMem32, result=%d"

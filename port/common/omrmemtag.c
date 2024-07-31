@@ -528,3 +528,18 @@ omrmem_ensure_capacity32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmoun
 
 	return retValue;
 }
+
+/**
+ * Disclaim memory.
+ * @param[in] portLibrary The port library
+ * return 0 on success, -1 on failure
+ */
+int32_t
+omrmem_disclaimAllMem32(struct OMRPortLibrary *portLibrary)
+{
+	uintptr_t result = 0;
+#if defined(LINUX)
+	result = disclaimAllMem32(portLibrary);
+#endif /* defined(LINUX) */
+	return result;
+}

@@ -25,6 +25,14 @@
 #include "omrportpg.h"
 #include "ut_omrport.h"
 
+#if defined(LINUX)
+#include <sys/mman.h>
+
+#ifndef MADV_PAGEOUT
+#define MADV_PAGEOUT 21
+#endif /* MADV_PAGEOUT */
+#endif /* defined(LINUX) */
+
 static void *allocateVmemRegion32(struct OMRPortLibrary *portLibrary, uintptr_t byteAmount, J9HeapWrapper **heapWrapper, const char *callSite, uint32_t memoryCategory, uintptr_t vmemMode, uintptr_t vmemAllocOptions);
 static void prependHeapWrapper(struct OMRPortLibrary *portLibrary, J9HeapWrapper *heapWrapper);
 static void updatePPGHeapSizeInfo(struct OMRPortLibrary *portLibrary, uintptr_t totalSizeDelta, BOOLEAN isIncrement);
@@ -728,4 +736,26 @@ free_memory32(struct OMRPortLibrary *portLibrary, void *memoryPointer)
 #endif
 
 	Trc_PRT_mem_free_memory32_Exit();
+}
+
+int32_t
+disclaimAllMem32(struct OMRPortLibrary *portLibrary)
+{
+	int32_t result = 0;
+	Trc_PRT_mem_disclaimAllMem32_enter();
+#if defined(LINUX)
+	J9HeapWrapper *heapWrapperCursor = PPG_mem_mem32_subAllocHeapMem32.firstHeapWrapper;
+	while (NULL != heapWrapperCursor) {
+		J9PortVmemIdentifier *vmemID = heapWrapperCursor->vmemID;
+		Trc_PRT_mem_disclaimAllMem32_heap(vmemID->address, vmemID->size);
+		result = madvise(vmemID->address, vmemID->size, MADV_PAGEOUT);
+		if (-1 == result) {
+			goto done;
+		}
+		heapWrapperCursor = heapWrapperCursor->nextHeapWrapper;
+	}
+done:
+#endif /* defined(LINUX) */
+	Trc_PRT_mem_allocate_memory32_exit(result);
+	return result;
 }
